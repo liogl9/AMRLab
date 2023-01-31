@@ -1,0 +1,34 @@
+// See https://aka.ms/vscode-remote/devcontainer.json for format details.
+{
+    "name": "ROS2 Foxy",
+    "dockerFile": "Dockerfile",
+    "build": {
+        "args": {
+            "WORKSPACE": "${containerWorkspaceFolder}"
+        }
+    },
+    "remoteUser": "ros",
+    "runArgs": [
+        "--network=host", // Remove network isolation between the container and the Docker host.
+        "--add-host=host.docker.internal:host-gateway" // Allow accessing host IP using host.docker.internal
+    ],
+    // Set container specific settings.json values on container create.
+    "settings": {
+        "terminal.integrated.profiles.linux": {
+            "bash": {
+                "path": "bash"
+            }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "extensions": [
+        "ms-azuretools.vscode-docker",
+        "ms-iot.vscode-ros",
+        "ms-python.python",
+        "ms-vsliveshare.vsliveshare-pack",
+        "ajshort.msg",
+        "gruntfuggly.todo-tree",
+        "njpwerner.autodocstring",
+        "twxs.cmake"
+    ]
+}
