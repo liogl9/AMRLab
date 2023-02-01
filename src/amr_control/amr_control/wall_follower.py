@@ -12,6 +12,8 @@ class WallFollower:
 
         """
         self._dt: float = dt
+        self._side_trh: float = 0.1
+        self._w0: float = -1.0
 
     def compute_commands(self, z_us: List[float], z_v: float, z_w: float) -> Tuple[float, float]:
         """Wall following exploration algorithm.
@@ -27,7 +29,14 @@ class WallFollower:
 
         """
         # TODO: 1.14. Complete the function body with your code (i.e., compute v and w).
+        # Control 0
         v = 0.5
-        w = 0.0
+        w = self._w0
+        if z_us[0] < self._side_trh and z_us[-1] < self._side_trh:
+            w = self._w0 - 0.5
+        elif z_us[7] < self._side_trh and z_us[8] < self._side_trh:
+            w = self._w0 + 0.2
+        # w>0 izq; w<0 der
+        # w = 0.0
 
         return v, w

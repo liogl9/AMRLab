@@ -40,10 +40,22 @@ class CoppeliaSimNode(Node):
         start = tuple(self.get_parameter("start").get_parameter_value().double_array_value.tolist())
 
         # TODO: 1.12. Subscribe to /cmd_vel. Connect it with with _next_step_callback.
+        self._subscriptions = []
+        # Append as many topics as needed
+        self._subscriptions.append(message_filters.Subscriber(self, TwistStamped, "cmd_vel"))
+        # self._subscriptions.append(message_filters.Subscriber(self, RangeScan, "us_scan"))
+        ts = message_filters.ApproximateTimeSynchronizer(self._subscriptions, queue_size=10, slop=2)
+        ts.registerCallback(self._next_step_callback)
 
         # TODO: 2.3. Synchronize the /pose and /cmd_vel subscribers if enable_localization is True.
 
-        # TODO: 1.4. Create the /odom (Odometry message) and /us_scan (RangeScan) publishers.
+        # TODO: 1.4. Create the /odom (Odometry message) and /us_scan (RangeScan) publishers
+        self._publisher_odom = self.create_publisher(
+            msg_type=Odometry, topic="odom", qos_profile=10
+        )
+        self._publisher_us_scan = self.create_publisher(
+            msg_type=RangeScan, topic="us_scan", qos_profile=10
+        )
 
         # Attribute and object initializations
         self._coppeliasim = CoppeliaSim(dt, start, goal_tolerance)
@@ -72,8 +84,8 @@ class CoppeliaSimNode(Node):
         self._check_estimated_pose(pose_msg)
 
         # TODO: 1.13. Parse the velocities from the TwistStamped message (i.e., read v and w).
-        v: float = 0.0
-        w: float = 0.0
+        v: float = cmd_vel_msg.twist.linear.x
+        w: float = cmd_vel_msg.twist.angular.z
 
         # Execute simulation step
         self._robot.move(v, w)
@@ -178,7 +190,11 @@ class CoppeliaSimNode(Node):
 
         """
         # TODO: 1.5. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        msg_odom = Odometry()
+        msg_odom.twist.twist.angular.z = z_w
+        msg_odom.twist.twist.linear.x = z_v
+        self._publisher_odom.publish(msg_odom)
+        self.get_logger().info(f"Publishing odom: {msg_odom.twist.twist.angular.z}")
 
     def _publish_us(self, z_us: List[float]) -> None:
         """Publishes US measurements in a custom amr_msgs.msg.RangeScan message.
@@ -188,7 +204,12 @@ class CoppeliaSimNode(Node):
 
         """
         # TODO: 1.6. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        msg_us = RangeScan()
+        msg_us.min_range = 0.05
+        msg_us.max_range = 1.00
+        msg_us.ranges = z_us
+        self._publisher_us_scan.publish(msg_us)
+        self.get_logger().info(f"Publishing us: {msg_us.ranges}")
 
 
 def main(args=None):
