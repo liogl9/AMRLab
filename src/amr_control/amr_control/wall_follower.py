@@ -14,16 +14,18 @@ class WallFollower:
 
         """
         self._dt: float = dt
+        self.d_sensors = 0.33 / 2
         self.w0: float = -0.05
-        self.turning = False
-        self.tr_rgt = False
-        self.tr_lft = False
+        self.turning: bool = False
+        self.tr_rgt: bool = False
+        self.tr_lft: bool = False
 
-        self.rad_turn = 0
-        self.kp = 10
+        self.rad_turn = 0.0
+        self.kp = 15
         self.kd = self.kp * 0.6 * self._dt
         self.wall_ref = 0.35
-        self.last_error = 0
+        self.last_error = 0.0
+        self.control = 1
 
     def go_straight(
         self, z_us: List[float], lft_wall: bool, rgt_wall: bool, control: int
@@ -46,6 +48,21 @@ class WallFollower:
                 w = self.kp * error + self.kd * error_dev
             elif lft_wall:
                 error = self.wall_ref - z_us[0]
+                error_dev = (error - self.last_error) / self._dt
+                self.last_error = error
+                w = -(self.kp * error + self.kd * error_dev)
+            else:
+                w = self.w0
+        elif control == 2:
+            if rgt_wall:
+                error = self.wall_ref - z_us[7]
+                error_dev = (error - self.last_error) / self._dt
+                self.last_error = error
+                w = self.kp * error + self.kd * error_dev
+            elif lft_wall:
+                error = self.wall_ref - z_us[0]
+                error_dev = (error - self.last_error) / self._dt
+                self.last_error = error
                 w = -(self.kp * error + self.kd * error_dev)
             else:
                 w = self.w0
@@ -124,7 +141,7 @@ class WallFollower:
         left, right, front, rear = self.get_sides(z_us)
 
         if not front and not self.turning:
-            v, w = self.go_straight(z_us, left, right, 0)
+            v, w = self.go_straight(z_us, left, right, self.control)
         else:
             if not self.turning:
                 self.turning = True
