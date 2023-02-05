@@ -69,7 +69,7 @@ class WallFollower:
 
         return v, w
 
-    def turn(self, deg: float, z_w: float) -> Tuple[float, float]:
+    def turn(self, deg: float, z_w: float, on_point: bool) -> Tuple[float, float]:
         """
         turn _summary_
 
@@ -81,13 +81,19 @@ class WallFollower:
         Returns:
             Tuple[float, float]: _description_
         """
-        v = 0.0
+        if not on_point:
+            v = 0.0
+            inc_w = 1
+        else:
+            v = 0.0
+            inc_w = 1
+
         if self.rad_turn < (abs(deg) * pi / 180.0):
             self.rad_turn = self.rad_turn + abs(z_w) * self._dt
             if deg > 0.0:
-                w = self.w0 + 1
+                w = self.w0 + inc_w
             else:
-                w = self.w0 - 1
+                w = self.w0 - inc_w
         else:
             self.rad_turn = 0.0
             self.turning = False
@@ -145,16 +151,24 @@ class WallFollower:
         else:
             if not self.turning:
                 self.turning = True
-                if right:
+                if right and left:
+                    self.tr_rgt = True
+                    self.tr_lft = True
+                elif right:
                     self.tr_rgt = True
                     self.tr_lft = False
-                else:
+                elif left:
                     self.tr_lft = True
                     self.tr_rgt = False
-            if self.tr_rgt:
-                v, w = self.turn(90, z_w)
+                elif not (right or left):
+                    self.tr_lft = True
+                    self.tr_rgt = False
+            if self.tr_rgt and self.tr_lft:
+                v, w = self.turn(180, z_w, True)
+            elif self.tr_rgt:
+                v, w = self.turn(90, z_w, False)
             elif self.tr_lft:
-                v, w = self.turn(-90, z_w)
+                v, w = self.turn(-90, z_w, False)
             else:
                 v = 0.0
                 w = 0.0
