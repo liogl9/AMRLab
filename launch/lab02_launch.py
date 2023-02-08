@@ -5,8 +5,9 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # start = (4.0, -4.0, 0.5 * math.pi)  # Outer corridor
-    start = (2.0, -3.0, 1.5 * math.pi)  # Inner corridor
+    world = "lab02"
+    start = (0, -1.5, 0.5 * math.pi)
+    particles = 2000
 
     return LaunchDescription(
         [
@@ -17,11 +18,18 @@ def generate_launch_description():
                 arguments=["--ros-args", "--log-level", "WARN"],
             ),
             Node(
+                package="amr_localization",
+                executable="particle_filter",
+                output="screen",
+                arguments=["--ros-args", "--log-level", "WARN"],
+                parameters=[{"enable_plot": True, "particles": particles, "world": world}],
+            ),
+            Node(
                 package="amr_simulation",
                 executable="coppeliasim",
                 output="screen",
                 arguments=["--ros-args", "--log-level", "WARN"],
-                parameters=[{"start": start}],
+                parameters=[{"enable_localization": True, "start": start}],
             ),  # Must be launched last
         ]
     )

@@ -52,7 +52,12 @@ class RobotP3DX(Robot):
 
         """
         # TODO: 1.1. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        self._sim.setJointTargetVelocity(
+            self._motors["left"], (v - self.TRACK / 2 * w) / self.WHEEL_RADIUS
+        )
+        self._sim.setJointTargetVelocity(
+            self._motors["right"], (v + self.TRACK / 2 * w) / self.WHEEL_RADIUS
+        )
 
     def sense(self) -> Tuple[List[float], float, float]:
         """Read ultrasonic sensors and encoders.
@@ -116,9 +121,11 @@ class RobotP3DX(Robot):
         encoders["right"] = self._sim.getFloatSignal("rightEncoder")
 
         # TODO: 1.2. Compute the derivatives of the angular positions to obtain velocities [rad/s].
+        left_dev = encoders["left"] / self._dt
+        right_dev = encoders["right"] / self._dt
 
         # TODO: 1.3. Solve forward differential kinematics (i.e., calculate z_v and z_w).
-        z_v = 0.0
-        z_w = 0.0
+        z_v = (left_dev + right_dev) / 2 * self.WHEEL_RADIUS
+        z_w = (right_dev - left_dev) / self.TRACK * self.WHEEL_RADIUS
 
         return z_v, z_w

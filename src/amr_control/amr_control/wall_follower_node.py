@@ -26,9 +26,17 @@ class WallFollowerNode(Node):
         )
 
         # TODO: 1.7. Subscribe to /odom and /us_scan and sync them with _compute_commands_callback.
+        self._subscriptions = []
+        # Append as many topics as needed
+        self._subscriptions.append(message_filters.Subscriber(self, Odometry, "odom"))
+        self._subscriptions.append(message_filters.Subscriber(self, RangeScan, "us_scan"))
+        ts = message_filters.ApproximateTimeSynchronizer(self._subscriptions, queue_size=10, slop=2)
+        ts.registerCallback(self._compute_commands_callback)
 
         # TODO: 1.10. Create the /cmd_vel velocity commands publisher (TwistStamped message).
-
+        self._publisher_cmd_vel = self.create_publisher(
+            msg_type=TwistStamped, topic="cmd_vel", qos_profile=10
+        )
         # Attribute and object initializations
         self._wall_follower = WallFollower(dt)
 
@@ -47,11 +55,11 @@ class WallFollowerNode(Node):
         """
         if not pose_msg.localized:
             # TODO: 1.8. Parse the odometry from the Odometry message (i.e., read z_v and z_w).
-            z_v: float = 0.0
-            z_w: float = 0.0
+            z_v: float = odom_msg.twist.twist.linear.x
+            z_w: float = odom_msg.twist.twist.angular.z
 
             # TODO: 1.9. Parse US measurements from the RangeScan message (i.e., read z_us).
-            z_us: List[float] = []
+            z_us: List[float] = us_msg.ranges
 
             # Execute wall follower
             v, w = self._wall_follower.compute_commands(z_us, z_v, z_w)
@@ -69,7 +77,11 @@ class WallFollowerNode(Node):
 
         """
         # TODO: 1.11. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        cmd_vel_msg = TwistStamped()
+        cmd_vel_msg.twist.angular.z = w
+        cmd_vel_msg.twist.linear.x = v
+        self._publisher_cmd_vel.publish(cmd_vel_msg)
+        self.get_logger().info(f"Publishing cmd_vel: {cmd_vel_msg._twist.angular.z}")
 
 
 def main(args=None):
