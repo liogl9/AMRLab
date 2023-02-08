@@ -5,8 +5,8 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    start = (4.0, -4.0, 0.5 * math.pi)  # Outer corridor
-    # start = (2.0, -3.0, 1.5 * math.pi)  # Inner corridor
+    # start = (4.0, -4.0, 0.5 * math.pi)  # Outer corridor
+    start = (2.0, -3.0, 1.5 * math.pi)  # Inner corridor
 
     return LaunchDescription(
         [
