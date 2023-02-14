@@ -29,8 +29,8 @@ class WallFollower:
         self.control: int = 1  # Control type: 0 -> P
         #                                      1 -> PD
         # Thresholds for detecting a wall
-        self.front_thr: float = 0.65  # Wall distance for front sensors
-        self.side_thr: float = 0.9  # Wall distance for side sensors
+        self.front_thr: float = 0.5  # Wall distance for front sensors
+        self.side_thr: float = 0.8  # Wall distance for side sensors
 
     def go_straight(
         self, z_us: List[float], lft_wall: bool, rgt_wall: bool, control: int
@@ -95,7 +95,7 @@ class WallFollower:
         # Define base linear velocity and angular velocity increments respect the base
         if not on_point:
             v = 0.0
-            inc_w = 1.3
+            inc_w = 1.4
         else:
             v = 0.0
             inc_w = 1.4
@@ -188,6 +188,7 @@ class WallFollower:
                 # If it wasn't turning but there is a wall on the front
                 self.turning = True  # start the turning state
                 self.choose_turn(right, left)  # define how much to turn and the orientation
+
             if self.turn_rgt and self.turn_lft:
                 # If there are walls on both sides
                 v, w = self.turn(170, z_w, True)

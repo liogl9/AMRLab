@@ -70,7 +70,62 @@ class ParticleFilter:
         pose: Tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
 
         # TODO: 2.10. Complete the missing function body with your code.
-        clustering = DBSCAN(eps=0.15, min_samples=100).fit(self._particles)
+        clustering = DBSCAN(eps=0.33, min_samples=20).fit(self._particles[:, :-1])
+        labels = clustering.labels_
+        n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+        centroid = np.empty((1, 3))
+
+        unique_labels = set(labels)
+        core_samples_mask = np.zeros_like(labels, dtype=bool)
+        core_samples_mask[clustering.core_sample_indices_] = True
+
+        colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+        for k, col in zip(unique_labels, colors):
+            if k == -1:
+                # Black used for noise.
+                col = [0, 0, 0, 1]
+
+            class_member_mask = labels == k
+
+            xy = self._particles[:, :-1][class_member_mask & core_samples_mask]
+            plt.plot(
+                xy[:, 0],
+                xy[:, 1],
+                "o",
+                markerfacecolor=tuple(col),
+                markeredgecolor="k",
+                markersize=14,
+            )
+
+            xy = self._particles[:, :-1][class_member_mask & ~core_samples_mask]
+            plt.plot(
+                xy[:, 0],
+                xy[:, 1],
+                "o",
+                markerfacecolor=tuple(col),
+                markeredgecolor="k",
+                markersize=6,
+            )
+
+        plt.title(f"Estimated number of clusters: {n_clusters}")
+        plt.savefig("clusters.png")
+        if n_clusters == 1:
+            localized = True
+            centroid[0, 0:2] = np.mean(self._particles[:, :-1], axis=0)
+            # centroid[0, 2] = np.mean(
+            #     [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
+            # )
+            centroid[0, 2] = np.mean(self._particles[:, 2])
+            if centroid[0, 2] < 0:
+                centroid[0, 2] += math.pi * 2
+
+            pose = (centroid[0, 0], centroid[0, 1], centroid[0, 2])
+            self._particle_count = 100
+
+        elif n_clusters > 1 and n_clusters <= 4:
+            self._particle_count = 400 * n_clusters
+            if self._particle_count < 400:
+                self._particle_count = 400
 
         return localized, pose
 
@@ -98,8 +153,10 @@ class ParticleFilter:
             )
             self._particles[i, 2] = self._particles[i, 2] + w_noise * self._dt
 
-            if (self._particles[i, 2] % 2 * math.pi) > 1:
+            if self._particles[i, 2] > 2 * math.pi:
                 self._particles[i, 2] = self._particles[i, 2] - 2 * math.pi
+            elif self._particles[i, 2] < 0:
+                self._particles[i, 2] = self._particles[i, 2] + 2 * math.pi
 
             intersection, _ = self._map.check_collision(
                 [(self._particles[i, 0], self._particles[i, 1]), (particle[0], particle[1])]
@@ -119,17 +176,16 @@ class ParticleFilter:
 
         """
         # TODO: 2.9. Complete the function body with your code (i.e., replace the pass statement).
-        weights = []
-        for particle in self._particles:
-            weights.append(self._measurement_probability(measurements, particle))
+        weights = [
+            self._measurement_probability(measurements, particle) for particle in self._particles
+        ]
+        # for particle in self._particles:
+        #     weights.append(self._measurement_probability(measurements, particle))
         weights_norm = weights / np.array(weights).sum(0)
         new_particle_idxs = np.random.choice(
             self._particles.shape[0], self._particle_count, replace=True, p=weights_norm
         )
-        new_particles = np.empty(self._particles.shape)
-        for i, idx in enumerate(new_particle_idxs):
-            new_particles[i, :] = self._particles[idx, :]
-        self._particles = new_particles
+        self._particles = self._particles[new_particle_idxs]
 
     def plot(self, axes, orientation: bool = True):
         """Draws particles.

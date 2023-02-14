@@ -81,7 +81,6 @@ class WallFollowerNode(Node):
         cmd_vel_msg.twist.angular.z = w
         cmd_vel_msg.twist.linear.x = v
         self._publisher_cmd_vel.publish(cmd_vel_msg)
-        self.get_logger().info(f"Publishing cmd_vel: {cmd_vel_msg._twist.angular.z}")
 
 
 def main(args=None):
