@@ -46,6 +46,9 @@ class ParticleFilterNode(Node):
         ts.registerCallback(self._compute_pose_callback)
 
         # TODO: 2.1. Create the /pose publisher (PoseStamped message).
+        self._publisher_pose = self.create_publisher(
+            msg_type=PoseStamped, topic="pose", qos_profile=10
+        )
 
         # Constants
         SENSOR_RANGE = 1.0  # Ultrasonic sensor range [m]
@@ -161,7 +164,18 @@ class ParticleFilterNode(Node):
 
         """
         # TODO: 2.2. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        pose_msg = PoseStamped()
+        pose_msg.localized = self._localized
+        if self._localized:
+            pose_msg.pose.position.x = x_h
+            pose_msg.pose.position.y = y_h
+            quaternions = euler2quat(0, 0, theta_h)
+            pose_msg.pose.orientation.w = quaternions[0]
+            pose_msg.pose.orientation.x = quaternions[1]
+            pose_msg.pose.orientation.y = quaternions[2]
+            pose_msg.pose.orientation.z = quaternions[3]
+
+        self._publisher_pose.publish(pose_msg)
 
 
 def main(args=None):

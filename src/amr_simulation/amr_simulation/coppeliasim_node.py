@@ -40,14 +40,14 @@ class CoppeliaSimNode(Node):
         start = tuple(self.get_parameter("start").get_parameter_value().double_array_value.tolist())
 
         # TODO: 1.12. Subscribe to /cmd_vel. Connect it with with _next_step_callback.
+        # TODO: 2.3. Synchronize the /pose and /cmd_vel subscribers if enable_localization is True.
         self._subscriptions = []
         # Append as many topics as needed
         self._subscriptions.append(message_filters.Subscriber(self, TwistStamped, "cmd_vel"))
-        # self._subscriptions.append(message_filters.Subscriber(self, RangeScan, "us_scan"))
+        if enable_localization:
+            self._subscriptions.append(message_filters.Subscriber(self, PoseStamped, "pose"))
         ts = message_filters.ApproximateTimeSynchronizer(self._subscriptions, queue_size=10, slop=2)
         ts.registerCallback(self._next_step_callback)
-
-        # TODO: 2.3. Synchronize the /pose and /cmd_vel subscribers if enable_localization is True.
 
         # TODO: 1.4. Create the /odom (Odometry message) and /us_scan (RangeScan) publishers
         self._publisher_odom = self.create_publisher(

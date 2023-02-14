@@ -5,3 +5,6 @@ log/
 
 # Python
 __pycache__/
+
+# Vscode
+src/amr_localization/img/*

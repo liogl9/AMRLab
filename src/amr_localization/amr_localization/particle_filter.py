@@ -70,6 +70,7 @@ class ParticleFilter:
         pose: Tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
 
         # TODO: 2.10. Complete the missing function body with your code.
+        clustering = DBSCAN(eps=0.15, min_samples=100).fit(self._particles)
 
         return localized, pose
 
@@ -84,7 +85,31 @@ class ParticleFilter:
         self._iteration += 1
 
         # TODO: 2.5. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        for i in range(self._particle_count):
+            v_noise = np.random.normal(v, self._sigma_v)
+            w_noise = np.random.normal(w, self._sigma_w)
+            particle = np.empty(2)
+
+            particle[0] = (
+                self._particles[i, 0] + v_noise * math.cos(self._particles[i, 2]) * self._dt
+            )
+            particle[1] = (
+                self._particles[i, 1] + v_noise * math.sin(self._particles[i, 2]) * self._dt
+            )
+            self._particles[i, 2] = self._particles[i, 2] + w_noise * self._dt
+
+            if (self._particles[i, 2] % 2 * math.pi) > 1:
+                self._particles[i, 2] = self._particles[i, 2] - 2 * math.pi
+
+            intersection, _ = self._map.check_collision(
+                [(self._particles[i, 0], self._particles[i, 1]), (particle[0], particle[1])]
+            )
+            if intersection:
+                self._particles[i, 0] = intersection[0]
+                self._particles[i, 1] = intersection[1]
+            else:
+                self._particles[i, 0] = particle[0]
+                self._particles[i, 1] = particle[1]
 
     def resample(self, measurements: List[float]) -> None:
         """Samples a new set of particles.
@@ -94,7 +119,17 @@ class ParticleFilter:
 
         """
         # TODO: 2.9. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        weights = []
+        for particle in self._particles:
+            weights.append(self._measurement_probability(measurements, particle))
+        weights_norm = weights / np.array(weights).sum(0)
+        new_particle_idxs = np.random.choice(
+            self._particles.shape[0], self._particle_count, replace=True, p=weights_norm
+        )
+        new_particles = np.empty(self._particles.shape)
+        for i, idx in enumerate(new_particle_idxs):
+            new_particles[i, :] = self._particles[idx, :]
+        self._particles = new_particles
 
     def plot(self, axes, orientation: bool = True):
         """Draws particles.
@@ -186,6 +221,16 @@ class ParticleFilter:
         particles = np.empty((particle_count, 3), dtype=object)
 
         # TODO: 2.4. Complete the missing function body with your code.
+        x_min, y_min, x_max, y_max = self._map.bounds()
+        for i in range(particle_count):
+            x = x_max + 1.0
+            y = y_max + 1.0
+            while not self._map.contains((x, y)):
+                x = np.random.uniform(x_min, x_max)
+                y = np.random.uniform(y_min, y_max)
+
+            theta = np.random.choice([0, math.pi / 2, math.pi, 3 * math.pi / 2])
+            particles[i] = np.array([x, y, theta])
 
         return particles
 
@@ -221,6 +266,12 @@ class ParticleFilter:
         z_hat: List[float] = []
 
         # TODO: 2.6. Complete the missing function body with your code.
+        for ray in rays:
+            _, distance = self._map.check_collision(ray, compute_distance=True)
+            if distance <= self._sensor_range:
+                z_hat.append(distance)
+            else:
+                z_hat.append(float("inf"))
 
         return z_hat
 
@@ -238,7 +289,9 @@ class ParticleFilter:
 
         """
         # TODO: 2.7. Complete the function body (i.e., replace the code below).
-        return 0.0
+        return 1.0 / (
+            sigma * math.sqrt(2 * math.pi) * math.e ** (((x - mu) ** 2) / (2 * (sigma**2)))
+        )
 
     def _measurement_probability(
         self, measurements: List[float], particle: Tuple[float, float, float]
@@ -261,7 +314,14 @@ class ParticleFilter:
         probability = 1.0
 
         # TODO: 2.8. Complete the missing function body with your code.
-
+        for act_measure, pred_measure in zip(measurements, self._sense(particle)):
+            if act_measure >= self._sensor_range:
+                act_measure = 1.25 * self._sensor_range
+            if pred_measure >= self._sensor_range:
+                pred_measure = 1.25 * self._sensor_range
+            probability = probability * self._gaussian(
+                mu=pred_measure, sigma=self._sigma_z, x=act_measure
+            )
         return probability
 
     def _sensor_rays(self, particle: Tuple[float, float, float]) -> List[List[Tuple[float, float]]]:
