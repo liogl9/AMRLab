@@ -6,7 +6,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     world = "lab02"
-    start = (0, 1.5, 1 * math.pi)
+    start = (0, -1.5, 0.5 * math.pi)
     particles = 2000
 
     return LaunchDescription(
