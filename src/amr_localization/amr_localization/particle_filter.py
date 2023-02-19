@@ -112,12 +112,12 @@ class ParticleFilter:
         if n_clusters == 1:
             localized = True
             centroid[0, 0:2] = np.mean(self._particles[:, :-1], axis=0)
-            # centroid[0, 2] = np.mean(
-            #     [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
-            # )
-            centroid[0, 2] = np.mean(self._particles[:, 2])
+            centroid[0, 2] = np.mean(
+                [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
+            )
+            # centroid[0, 2] = np.mean(self._particles[:, 2])
             if centroid[0, 2] < 0:
-                centroid[0, 2] += math.pi * 2
+                centroid[0, 2] %= 2 * math.pi
 
             pose = (centroid[0, 0], centroid[0, 1], centroid[0, 2])
             self._particle_count = 100
@@ -153,10 +153,10 @@ class ParticleFilter:
             )
             self._particles[i, 2] = self._particles[i, 2] + w_noise * self._dt
 
-            if self._particles[i, 2] > 2 * math.pi:
-                self._particles[i, 2] = self._particles[i, 2] - 2 * math.pi
-            elif self._particles[i, 2] < 0:
-                self._particles[i, 2] = self._particles[i, 2] + 2 * math.pi
+            if self._particles[i, 2] > 2 * math.pi or self._particles[i, 2] < 0:
+                self._particles[i, 2] %= 2 * math.pi
+            # elif self._particles[i, 2] < 0:
+            #     self._particles[i, 2] = self._particles[i, 2] + 2 * math.pi
 
             intersection, _ = self._map.check_collision(
                 [(self._particles[i, 0], self._particles[i, 1]), (particle[0], particle[1])]
@@ -279,8 +279,8 @@ class ParticleFilter:
         # TODO: 2.4. Complete the missing function body with your code.
         x_min, y_min, x_max, y_max = self._map.bounds()
         for i in range(particle_count):
-            x = x_max + 1.0
-            y = y_max + 1.0
+            x = np.random.uniform(x_min, x_max)
+            y = np.random.uniform(y_min, y_max)
             while not self._map.contains((x, y)):
                 x = np.random.uniform(x_min, x_max)
                 y = np.random.uniform(y_min, y_max)
@@ -324,10 +324,11 @@ class ParticleFilter:
         # TODO: 2.6. Complete the missing function body with your code.
         for ray in rays:
             _, distance = self._map.check_collision(ray, compute_distance=True)
-            if distance <= self._sensor_range:
-                z_hat.append(distance)
-            else:
-                z_hat.append(float("inf"))
+            z_hat.append(distance)
+            # if distance <= self._sensor_range:
+            #     z_hat.append(distance)
+            # else:
+            #     z_hat.append(float("inf"))
 
         return z_hat
 
@@ -345,9 +346,7 @@ class ParticleFilter:
 
         """
         # TODO: 2.7. Complete the function body (i.e., replace the code below).
-        return 1.0 / (
-            sigma * math.sqrt(2 * math.pi) * math.e ** (((x - mu) ** 2) / (2 * (sigma**2)))
-        )
+        return 1.0 / (math.exp(((x - mu) ** 2) / (2 * (sigma**2))))
 
     def _measurement_probability(
         self, measurements: List[float], particle: Tuple[float, float, float]
