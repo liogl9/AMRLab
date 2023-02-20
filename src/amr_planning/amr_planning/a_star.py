@@ -6,7 +6,8 @@ import pytz
 
 from amr_planning.map import Map
 from matplotlib import pyplot as plt
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
+import itertools
 
 
 class AStar:
@@ -57,13 +58,61 @@ class AStar:
 
         """
         # TODO: 3.2. Complete the function body (i.e., replace the code below).
+        try:
+            r_goal, c_goal = self._xy_to_rc(goal)
+            # if (r_goal > map_size[0] or r_goal < 0) or (c_goal > map_size[1] or c_goal < 0):
+            if not self._map.contains(goal):
+                raise ValueError(f"Goal: {goal} is outside the map!")
+        except ValueError as e:
+            print(e)
+
+        try:
+            r_start, c_start = self._xy_to_rc(start)
+            # if (r_start > map_size[0] or r_start < 0) or (c_start > map_size[1] or c_start < 0):
+            if not self._map.contains(start):
+                raise ValueError(f"Start: {start} is outside the map!")
+        except ValueError as e:
+            print(e)
+
         path: List[Tuple[float, float]] = []
         steps: int = 0
+
+        heuristic = self._compute_heuristic(goal)
+        closed_list = set()
+        ancestors: Dict[Tuple[int, int], Tuple[int, int]] = {}
+        open_list: Dict[Tuple[int, int], Tuple[int, int]] = {
+            (r_start, c_start): (heuristic[r_start, c_start], 0)
+        }
+
+        while open_list:
+            node = r, c = min(open_list, key=lambda k: open_list.get(k)[0])
+            g = open_list.get(node)[1]
+            open_list.pop(node)
+
+            # if goal reached
+            if node == (r_goal, c_goal):
+                return self._reconstruct_path(start, goal, ancestors), steps
+
+            neighbours = [(r, c - 1), (r - 1, c), (r, c + 1), (r + 1, c)]
+            for i, neighbor in enumerate(neighbours):
+                if (
+                    self._map.contains(self._rc_to_xy(neighbor))
+                    and neighbor not in open_list
+                    and neighbor not in closed_list
+                ):
+                    g_new = g + self._action_costs[i]
+                    f_new = g_new + heuristic[neighbor]
+                    open_list[neighbor] = (f_new, g_new)
+                    ancestors[neighbor] = node
+
+            closed_list.add(node)
+            steps += 1
+
         return path, steps
 
     @staticmethod
     def smooth_path(
-        path, data_weight: float = 0.1, smooth_weight: float = 0.1, tolerance: float = 1e-6
+        path, data_weight: float = 0.5, smooth_weight: float = 0.2, tolerance: float = 1
     ) -> List[Tuple[float, float]]:
         """Computes a smooth trajectory from a Manhattan-like path.
 
@@ -78,8 +127,40 @@ class AStar:
 
         """
         smoothed_path: List[Tuple[float, float]] = []
-
         # TODO: 3.4. Complete the missing function body with your code.
+        for _ in range(1):
+            smoothed_path = []
+            for i in range(len(path)):
+                if i == 0 or i == len(path) - 1:
+                    smoothed_path.append(path[i])
+                    continue
+                n_x = (path[i][0] + path[i - 1][0]) / 2
+                n_y = (path[i][1] + path[i - 1][1]) / 2
+                smoothed_path.append((n_x, n_y))
+                smoothed_path.append(path[i])
+            path = smoothed_path
+
+        print(path)
+
+        change = 100
+        while change > tolerance:
+            change = 0
+            for i, s in enumerate(smoothed_path):
+                if i == 0 or i == (len(smoothed_path) - 1):
+                    continue
+                p = path[i]
+                s_x = (
+                    s[0]
+                    + data_weight * (p[0] - s[0])
+                    + smooth_weight * (smoothed_path[i + 1][0] + smoothed_path[i - 1][0] - 2 * s[0])
+                )
+                s_y = (
+                    s[1]
+                    + data_weight * (p[1] - s[1])
+                    + smooth_weight * (smoothed_path[i + 1][1] + smoothed_path[i - 1][1] - 2 * s[1])
+                )
+                smoothed_path[i] = (s_x, s_y)
+                change += abs(s_x - s[0]) + abs(s_y - s[1])
 
         return smoothed_path
 
@@ -178,8 +259,12 @@ class AStar:
 
         """
         heuristic = np.zeros_like(self._map.grid_map)
+        r_goal, c_goal = self._xy_to_rc(goal)
 
         # TODO: 3.1. Complete the missing function body with your code.
+        map_size = np.shape(heuristic)
+        for i, j in itertools.product(range(map_size[0]), range(map_size[1])):
+            heuristic[i, j] = np.abs(r_goal - i) + np.abs(c_goal - j)
 
         return heuristic
 
@@ -203,7 +288,13 @@ class AStar:
         path: List[Tuple[float, float]] = []
 
         # TODO: 3.3. Complete the missing function body with your code.
-
+        node = self._xy_to_rc(goal)
+        while node:
+            previous_node = ancestors[node]
+            path.insert(0, self._rc_to_xy(previous_node))
+            node = previous_node
+            if self._rc_to_xy(node) == start:
+                break
         return path
 
     def _xy_to_rc(self, xy: Tuple[float, float]) -> Tuple[int, int]:

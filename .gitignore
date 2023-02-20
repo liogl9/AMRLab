@@ -8,6 +8,7 @@ __pycache__/
 
 # Vscode
 src/amr_localization/img/*
+src/amr_planning/images/*
 
 #dummy img
 clusters.png

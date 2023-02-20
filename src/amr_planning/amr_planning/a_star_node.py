@@ -32,7 +32,7 @@ class AStarNode(Node):
         )
 
         # TODO: 3.5. Create the /path publisher (Path message).
-
+        self._publisher_path = self.create_publisher(msg_type=Path, topic="path", qos_profile=10)
         # Constants
         SENSOR_RANGE = 1.0  # Ultrasonic sensor range [m]
 
@@ -54,7 +54,7 @@ class AStarNode(Node):
             # Execute A*
             start = (pose_msg.pose.position.x, pose_msg.pose.position.y)
             path, steps = self._planning.a_star(start, self._goal)
-            smoothed_path = AStar.smooth_path(path, data_weight=0.1, smooth_weight=0.2)
+            smoothed_path = AStar.smooth_path(path)
 
             self.get_logger().info(f"Path found in {steps} steps.")
             self._planning.show(path, smoothed_path, save_figure=True)
@@ -71,6 +71,9 @@ class AStarNode(Node):
 
         """
         # TODO: 3.6. Complete the function body with your code (i.e., replace the pass statement).
+        # path_msg = Path()
+        # path_msg.poses = path
+        # self._publisher_path.publish(path_msg)
         pass
 
 
