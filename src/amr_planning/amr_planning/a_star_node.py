@@ -71,10 +71,14 @@ class AStarNode(Node):
 
         """
         # TODO: 3.6. Complete the function body with your code (i.e., replace the pass statement).
-        # path_msg = Path()
-        # path_msg.poses = path
-        # self._publisher_path.publish(path_msg)
-        pass
+        path_msg = Path()
+        for node in path:
+            pose = PoseStamped()
+            pose.pose.position.x = node[0]
+            pose.pose.position.y = node[1]
+            path_msg.poses.append(pose)
+
+        self._publisher_path.publish(path_msg)
 
 
 def main(args=None):
