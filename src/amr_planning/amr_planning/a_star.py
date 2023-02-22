@@ -85,8 +85,7 @@ class AStar:
 
         while open_list:
             node = r, c = min(open_list, key=lambda k: open_list.get(k)[0])
-            g = open_list.get(node)[1]
-            open_list.pop(node)
+            _, g = open_list.pop(node)
 
             # if goal reached
             if node == (r_goal, c_goal):
@@ -111,7 +110,7 @@ class AStar:
 
     @staticmethod
     def smooth_path(
-        path, data_weight: float = 0.1, smooth_weight: float = 0.5, tolerance: float = 1e-9
+        path, data_weight: float = 0.1, smooth_weight: float = 0.3, tolerance: float = 1e-9
     ) -> List[Tuple[float, float]]:
         """Computes a smooth trajectory from a Manhattan-like path.
 
@@ -127,13 +126,13 @@ class AStar:
         """
         smoothed_path: List[Tuple[float, float]] = []
         # TODO: 3.4. Complete the missing function body with your code.
-        added_points = 3
+        added_points = 2
 
         if added_points != 0:
             for _ in range(added_points):
                 smoothed_path = []
                 for i in range(len(path)):
-                    if i == 0 or i == len(path) - 1:
+                    if i == 0:
                         smoothed_path.append((float(path[i][0]), (float(path[i][1]))))
                         continue
                     n_x = (path[i][0] + path[i - 1][0]) / 2
@@ -263,12 +262,10 @@ class AStar:
         """
         heuristic = np.zeros_like(self._map.grid_map)
         r_goal, c_goal = self._xy_to_rc(goal)
-        naive = False
         # TODO: 3.1. Complete the missing function body with your code.
-        if not naive:
-            map_size = np.shape(heuristic)
-            for i, j in itertools.product(range(map_size[0]), range(map_size[1])):
-                heuristic[i, j] = np.abs(r_goal - i) + np.abs(c_goal - j)
+        map_size = np.shape(heuristic)
+        for i, j in itertools.product(range(map_size[0]), range(map_size[1])):
+            heuristic[i, j] = np.abs(r_goal - i) + np.abs(c_goal - j)
 
         return heuristic
 
@@ -289,11 +286,10 @@ class AStar:
         Returns: Path to the goal (start location first) in (x, y) format.
 
         """
-        path: List[Tuple[float, float]] = []
+        path: List[Tuple[float, float]] = [goal]
 
         # TODO: 3.3. Complete the missing function body with your code.
         node = self._xy_to_rc(goal)
-        path.append(goal)
         while node:
             previous_node = ancestors[node]
             path.insert(0, self._rc_to_xy(previous_node))
