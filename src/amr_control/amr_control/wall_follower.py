@@ -49,7 +49,7 @@ class WallFollower:
         Returns:
             v, w Tuple[float, float]: Command of the linear and angular velocities
         """
-        v = 0.5  # Base linear velocity on straight corridors
+        v = 0.7  # Base linear velocity on straight corridors
 
         if rgt_wall:
             # Following right wall
@@ -97,7 +97,7 @@ class WallFollower:
             v = 0.0
             inc_w = 1.4
         else:
-            v = 0.0
+            v = 0.2
             inc_w = 1.4
 
         # Check if it needs to turn more or not

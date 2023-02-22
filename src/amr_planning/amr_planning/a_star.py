@@ -17,14 +17,14 @@ class AStar:
         self,
         map_path: str,
         sensor_range: float,
-        action_costs: Tuple[float, float, float, float] = (1.0, 1.0, 1.0, 100.0),
+        action_costs: Tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
     ):
         """A* class initializer.
 
         Args:
             map_path: Path to the map of the environment.
             sensor_range: Sensor measurement range [m].
-            action_costs: Cost of of moving one cell left, right, up, and down.
+            action_costs: Cost of of moving one cell left, up, right, and down.
 
         """
         self._actions: np.ndarray = np.array(
@@ -92,7 +92,7 @@ class AStar:
             if node == (r_goal, c_goal):
                 return self._reconstruct_path(start, goal, ancestors), steps
 
-            neighbours = [(r, c - 1), (r, c + 1), (r - 1, c), (r + 1, c)]
+            neighbours = [(r, c - 1), (r - 1, c), (r, c + 1), (r + 1, c)]
             for i, neighbor in enumerate(neighbours):
                 if (
                     self._map.contains(self._rc_to_xy(neighbor))
@@ -111,7 +111,7 @@ class AStar:
 
     @staticmethod
     def smooth_path(
-        path, data_weight: float = 0.5, smooth_weight: float = 0.1, tolerance: float = 1
+        path, data_weight: float = 0.1, smooth_weight: float = 0.5, tolerance: float = 1e-9
     ) -> List[Tuple[float, float]]:
         """Computes a smooth trajectory from a Manhattan-like path.
 
@@ -127,7 +127,8 @@ class AStar:
         """
         smoothed_path: List[Tuple[float, float]] = []
         # TODO: 3.4. Complete the missing function body with your code.
-        added_points = 1
+        added_points = 3
+
         if added_points != 0:
             for _ in range(added_points):
                 smoothed_path = []
@@ -139,12 +140,12 @@ class AStar:
                     n_y = (path[i][1] + path[i - 1][1]) / 2
                     smoothed_path.append((n_x, n_y))
                     smoothed_path.append((float(path[i][0]), (float(path[i][1]))))
-                path = smoothed_path
+                path[:] = smoothed_path[:]
         else:
             for i in range(len(path)):
                 smoothed_path.append((float(path[i][0]), (float(path[i][1]))))
 
-        change = 100
+        change = float("inf")
         while change > tolerance:
             change = 0
             for i, s in enumerate(smoothed_path):

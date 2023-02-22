@@ -3,6 +3,7 @@ import math
 import numpy as np
 import os
 import pytz
+from scipy.stats import circmean
 
 from amr_localization.map import Map
 from sklearn.cluster import DBSCAN
@@ -75,49 +76,53 @@ class ParticleFilter:
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
         centroid = np.empty((1, 3))
 
-        unique_labels = set(labels)
-        core_samples_mask = np.zeros_like(labels, dtype=bool)
-        core_samples_mask[clustering.core_sample_indices_] = True
+        # unique_labels = set(labels)
+        # core_samples_mask = np.zeros_like(labels, dtype=bool)
+        # core_samples_mask[clustering.core_sample_indices_] = True
 
-        colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
-        for k, col in zip(unique_labels, colors):
-            if k == -1:
-                # Black used for noise.
-                col = [0, 0, 0, 1]
+        # colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+        # for k, col in zip(unique_labels, colors):
+        #     if k == -1:
+        #         # Black used for noise.
+        #         col = [0, 0, 0, 1]
 
-            class_member_mask = labels == k
+        #     class_member_mask = labels == k
 
-            xy = self._particles[:, :-1][class_member_mask & core_samples_mask]
-            plt.plot(
-                xy[:, 0],
-                xy[:, 1],
-                "o",
-                markerfacecolor=tuple(col),
-                markeredgecolor="k",
-                markersize=14,
-            )
+        #     xy = self._particles[:, :-1][class_member_mask & core_samples_mask]
+        #     plt.plot(
+        #         xy[:, 0],
+        #         xy[:, 1],
+        #         "o",
+        #         markerfacecolor=tuple(col),
+        #         markeredgecolor="k",
+        #         markersize=14,
+        #     )
 
-            xy = self._particles[:, :-1][class_member_mask & ~core_samples_mask]
-            plt.plot(
-                xy[:, 0],
-                xy[:, 1],
-                "o",
-                markerfacecolor=tuple(col),
-                markeredgecolor="k",
-                markersize=6,
-            )
+        #     xy = self._particles[:, :-1][class_member_mask & ~core_samples_mask]
+        #     plt.plot(
+        #         xy[:, 0],
+        #         xy[:, 1],
+        #         "o",
+        #         markerfacecolor=tuple(col),
+        #         markeredgecolor="k",
+        #         markersize=6,
+        #     )
 
-        plt.title(f"Estimated number of clusters: {n_clusters}")
-        plt.savefig("clusters.png")
+        # plt.title(f"Estimated number of clusters: {n_clusters}")
+        # plt.savefig("clusters.png")
         if n_clusters == 1:
             localized = True
             centroid[0, 0:2] = np.mean(self._particles[:, :-1], axis=0)
-            centroid[0, 2] = np.mean(
-                [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
-            )
+            # centroid[0, 2] = np.mean(
+            #     [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
+            # )
             # centroid[0, 2] = np.mean(self._particles[:, 2])
-            if centroid[0, 2] < 0:
-                centroid[0, 2] %= 2 * math.pi
+            aux = np.array(
+                np.reshape(self._particles[:, 2], (self._particles.shape[0], 1)), dtype=np.float64
+            )
+            centroid[0, 2] = circmean(aux)
+            # if centroid[0, 2] < 0:
+            #     centroid[0, 2] %= 2 * math.pi
 
             pose = (centroid[0, 0], centroid[0, 1], centroid[0, 2])
             self._particle_count = 100
