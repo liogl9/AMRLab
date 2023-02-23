@@ -292,10 +292,11 @@ class AStar:
         node = self._xy_to_rc(goal)
         while node:
             previous_node = ancestors[node]
-            path.insert(0, self._rc_to_xy(previous_node))
+            path.append(self._rc_to_xy(previous_node))
             node = previous_node
-            if self._rc_to_xy(node) == start:
+            if self._rc_to_xy(node) == (int(start[0]), int(start[1])):
                 break
+        path.reverse()
         return path
 
     def _xy_to_rc(self, xy: Tuple[float, float]) -> Tuple[int, int]:

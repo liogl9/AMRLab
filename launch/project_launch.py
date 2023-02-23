@@ -6,9 +6,12 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     world = "project"
-    start = (2.0, -3.0, 1.5 * math.pi)
-    goal = (3.0, 2.0)
-    particles = 6500
+    start = (-4.0, -4.0, 0.5 * math.pi)
+    goal = (4.0, 4.0)
+    # start = (2.0, -3.0, 1.5 * math.pi)
+    # goal = (3.0, 2.0)
+    particles = 5000
+    sense_steps = 20
 
     return LaunchDescription(
         [
@@ -24,7 +27,9 @@ def generate_launch_description():
                 executable="particle_filter",
                 output="screen",
                 arguments=["--ros-args", "--log-level", "WARN"],
-                parameters=[{"particles": particles, "world": world}],
+                parameters=[
+                    {"particles": particles, "world": world, "steps_btw_sense_updates": sense_steps}
+                ],
             ),
             Node(
                 package="amr_planning",

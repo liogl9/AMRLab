@@ -20,7 +20,7 @@ class PurePursuitNode(Node):
         self.declare_parameter("dt", 0.05)
         dt = self.get_parameter("dt").get_parameter_value().double_value
 
-        self.declare_parameter("lookahead_distance", 0.5)
+        self.declare_parameter("lookahead_distance", 0.6)
         lookahead_distance = (
             self.get_parameter("lookahead_distance").get_parameter_value().double_value
         )
@@ -59,7 +59,9 @@ class PurePursuitNode(Node):
 
             # Execute pure pursuit
             v, w = self._pure_pursuit.compute_commands(x, y, theta)
-            self.get_logger().info(f"Commands: v = {v:.3f} m/s, w = {w:+.3f} rad/s")
+            self.get_logger().warn(
+                f"v = {v:.3f} m/s, w = {w:+.3f} rad/s, alfa = {self._pure_pursuit.alfa:+.3f}"
+            )
 
             # Publish
             self._publish_velocity_commands(v, w)
@@ -72,7 +74,11 @@ class PurePursuitNode(Node):
 
         """
         # TODO: 4.1. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+
+        self._pure_pursuit.path = [
+            (pose.pose.position.x, pose.pose.position.y) for pose in path_msg.poses
+        ]
+        self._pure_pursuit._remaining_path[:] = self._pure_pursuit.path[:]
 
     def _publish_velocity_commands(self, v: float, w: float) -> None:
         """Publishes velocity commands in a geometry_msgs.msg.TwistStamped message.

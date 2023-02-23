@@ -30,6 +30,8 @@ class WallFollowerNode(Node):
         # Append as many topics as needed
         self._subscriptions.append(message_filters.Subscriber(self, Odometry, "odom"))
         self._subscriptions.append(message_filters.Subscriber(self, RangeScan, "us_scan"))
+        if enable_localization:
+            self._subscriptions.append(message_filters.Subscriber(self, PoseStamped, "pose"))
         ts = message_filters.ApproximateTimeSynchronizer(self._subscriptions, queue_size=10, slop=2)
         ts.registerCallback(self._compute_commands_callback)
 
@@ -63,7 +65,7 @@ class WallFollowerNode(Node):
 
             # Execute wall follower
             v, w = self._wall_follower.compute_commands(z_us, z_v, z_w)
-            self.get_logger().info(f"Commands: v = {v:.3f} m/s, w = {w:+.3f} rad/s")
+            self.get_logger().warn(f"Commands: v = {v:.3f} m/s, w = {w:+.3f} rad/s")
 
             # Publish
             self._publish_velocity_commands(v, w)

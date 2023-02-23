@@ -55,6 +55,7 @@ class ParticleFilter:
         self._timestamp = datetime.datetime.now(pytz.timezone("Europe/Madrid")).strftime(
             "%Y-%m-%d_%H-%M-%S"
         )
+        self.localized = False
 
     def compute_pose(self) -> Tuple[bool, Tuple[float, float, float]]:
         """Computes the pose estimate when the particles form a single DBSCAN cluster.
@@ -67,7 +68,7 @@ class ParticleFilter:
             pose: Robot pose estimate (x, y, theta) [m, m, rad].
 
         """
-        localized: bool = False
+        # localized: bool = False
         pose: Tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
 
         # TODO: 2.10. Complete the missing function body with your code.
@@ -111,7 +112,7 @@ class ParticleFilter:
         # plt.title(f"Estimated number of clusters: {n_clusters}")
         # plt.savefig("clusters.png")
         if n_clusters == 1:
-            localized = True
+            self.localized = True
             centroid[0, 0:2] = np.mean(self._particles[:, :-1], axis=0)
             # centroid[0, 2] = np.mean(
             #     [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
@@ -128,11 +129,11 @@ class ParticleFilter:
             self._particle_count = 100
 
         elif n_clusters > 1 and n_clusters <= 4:
-            self._particle_count = 400 * n_clusters
+            self._particle_count = 600 * n_clusters
             if self._particle_count < 400:
                 self._particle_count = 400
 
-        return localized, pose
+        return self.localized, pose
 
     def move(self, v: float, w: float) -> None:
         """Performs a motion update on the particles.
