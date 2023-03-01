@@ -40,10 +40,10 @@ class PurePursuit:
             origin, origin_idx = self._find_closest_point(x, y)
             target = self._find_target_point(origin, origin_idx)
             self.alfa = theta - np.arctan2(target[1] - y, target[0] - x)
-            if abs(self.alfa) > 0.2:
-                v = 0.5
+            if np.abs(self.alfa) < 0.3 or np.abs(self.alfa) > 6.0:
+                v = 1.1
             else:
-                v = 0.9
+                v = 0.8
             w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -1.0
 
         return v, w
@@ -100,7 +100,7 @@ class PurePursuit:
 
         distances = np.array(
             [
-                abs(
+                np.abs(
                     np.sqrt((node[0] - origin_xy[0]) ** 2 + (node[1] - origin_xy[1]) ** 2)
                     - self._lookahead_distance
                 )

@@ -74,7 +74,6 @@ class PurePursuitNode(Node):
 
         """
         # TODO: 4.1. Complete the function body with your code (i.e., replace the pass statement).
-
         self._pure_pursuit.path = [
             (pose.pose.position.x, pose.pose.position.y) for pose in path_msg.poses
         ]

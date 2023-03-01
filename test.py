@@ -18,6 +18,8 @@ s = np.random.uniform(0, 1, 1000)  # Draws 1000 samples from an interval of [0, 
 #         c.append()
 # c = [x if x < math.pi else x - math.pi * 2 for x in a]
 # print(c)
-a = [3, 3, 4, 3]
-a.reverse()
-print(a)
+
+a = np.zeros((2, 3))
+
+for index, x in np.ndenumerate(a):
+    print(index)

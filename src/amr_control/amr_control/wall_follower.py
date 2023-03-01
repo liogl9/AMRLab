@@ -21,10 +21,10 @@ class WallFollower:
         self.rad_turn: float = 0.0  # Cumulative radians turned
 
         # Control parameters
-        self.kp: float = 7  # Proportional parameter
+        self.kp: float = 6.0  # Proportional parameter
         self.kd: float = self.kp * 0.6 * self._dt  # Derivative parameter
         self.last_error: float = 0.0  # Last error measured
-        self.w0: float = -0.05  # Base angular speed
+        self.w0: float = -0.00  # Base angular speed
         self.wall_ref: float = 0.35  # Wall distance reference
         self.control: int = 1  # Control type: 0 -> P
         #                                      1 -> PD
@@ -97,7 +97,7 @@ class WallFollower:
             v = 0.0
             inc_w = 1.4
         else:
-            v = 0.2
+            v = 0.0
             inc_w = 1.4
 
         # Check if it needs to turn more or not

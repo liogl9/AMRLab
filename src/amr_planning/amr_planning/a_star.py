@@ -82,7 +82,8 @@ class AStar:
         open_list: Dict[Tuple[int, int], Tuple[int, int]] = {
             (r_start, c_start): (heuristic[r_start, c_start], 0)
         }
-
+        grid_map = self._map.grid_map
+        size = grid_map.shape
         while open_list:
             node = r, c = min(open_list, key=lambda k: open_list.get(k)[0])
             _, g = open_list.pop(node)
@@ -92,9 +93,12 @@ class AStar:
                 return self._reconstruct_path(start, goal, ancestors), steps
 
             neighbours = [(r, c - 1), (r - 1, c), (r, c + 1), (r + 1, c)]
+            neighbours = [
+                (x, y) for (x, y) in neighbours if x >= 0 and y >= 0 and x < size[0] and y < size[1]
+            ]
             for i, neighbor in enumerate(neighbours):
                 if (
-                    self._map.contains(self._rc_to_xy(neighbor))
+                    not self._map.grid_map[neighbor[0], neighbor[1]]
                     and neighbor not in open_list
                     and neighbor not in closed_list
                 ):
@@ -264,7 +268,7 @@ class AStar:
         r_goal, c_goal = self._xy_to_rc(goal)
         # TODO: 3.1. Complete the missing function body with your code.
         map_size = np.shape(heuristic)
-        for i, j in itertools.product(range(map_size[0]), range(map_size[1])):
+        for (i, j), _ in np.ndenumerate(heuristic):
             heuristic[i, j] = np.abs(r_goal - i) + np.abs(c_goal - j)
 
         return heuristic
@@ -294,7 +298,7 @@ class AStar:
             previous_node = ancestors[node]
             path.append(self._rc_to_xy(previous_node))
             node = previous_node
-            if self._rc_to_xy(node) == (int(start[0]), int(start[1])):
+            if self._rc_to_xy(node) == (np.round(start[0]), np.round(start[1])):
                 break
         path.reverse()
         return path
