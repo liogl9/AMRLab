@@ -6,14 +6,14 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     world = "project"
-    # start = (-4.0, -4.0, 0.5 * math.pi)
+    start = (-4.0, -4.0, 0.5 * math.pi)
     # goal = (4.0, 4.0)
     # start = (2.0, -3.0, 1.5 * math.pi)
     # goal = (3.0, 2.0)
-    start = (2.0, -3.0, 0.5 * math.pi)
+    # start = (2.0, -3.0, 0.5 * math.pi)
     goal = (0.0, 4.0)
-    particles = 5000
-    sense_steps = 20
+    particles = 7000
+    sense_steps = 15
     lookahead_distance = 0.7
 
     return LaunchDescription(

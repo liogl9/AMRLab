@@ -33,18 +33,20 @@ class PurePursuit:
 
         """
         # TODO: 4.4. Complete the function body with your code (i.e., compute v and w).
-        v = 0.0
-        w = 0.0
-
-        if len(self.path):
-            origin, origin_idx = self._find_closest_point(x, y)
-            target = self._find_target_point(origin, origin_idx)
-            self.alfa = theta - np.arctan2(target[1] - y, target[0] - x)
-            if np.abs(self.alfa) < 0.3 or np.abs(self.alfa) > 6.0:
-                v = 1.1
-            else:
-                v = 0.8
-            w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -1.0
+        origin, origin_idx = self._find_closest_point(x, y)
+        target = self._find_target_point(origin, origin_idx)
+        self.alfa = theta - np.arctan2(target[1] - y, target[0] - x)
+        abs_alfa = np.abs(self.alfa)
+        if abs_alfa < 0.3 or abs_alfa > 6.0:
+            v = 1.2
+            w_mult = 0.8
+        elif abs_alfa < 4.5:
+            v = 0.7
+            w_mult = 1.35
+        else:
+            v = 0.5
+            w_mult = 2
+        w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -w_mult
 
         return v, w
 

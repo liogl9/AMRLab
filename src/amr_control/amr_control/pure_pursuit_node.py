@@ -58,7 +58,9 @@ class PurePursuitNode(Node):
             theta %= 2 * math.pi
 
             # Execute pure pursuit
-            v, w = self._pure_pursuit.compute_commands(x, y, theta)
+            v, w = 0.0, 0.0
+            if len(self._pure_pursuit.path):
+                v, w = self._pure_pursuit.compute_commands(x, y, theta)
             self.get_logger().warn(
                 f"v = {v:.3f} m/s, w = {w:+.3f} rad/s, alfa = {self._pure_pursuit.alfa:+.3f}"
             )

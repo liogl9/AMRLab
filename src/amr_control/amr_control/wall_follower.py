@@ -21,7 +21,7 @@ class WallFollower:
         self.rad_turn: float = 0.0  # Cumulative radians turned
 
         # Control parameters
-        self.kp: float = 6.0  # Proportional parameter
+        self.kp: float = 5.0  # Proportional parameter
         self.kd: float = self.kp * 0.6 * self._dt  # Derivative parameter
         self.last_error: float = 0.0  # Last error measured
         self.w0: float = -0.00  # Base angular speed
@@ -49,30 +49,20 @@ class WallFollower:
         Returns:
             v, w Tuple[float, float]: Command of the linear and angular velocities
         """
-        v = 0.7  # Base linear velocity on straight corridors
+        v = 0.6  # Base linear velocity on straight corridors
 
         if rgt_wall:
             # Following right wall
             error = self.wall_ref - z_us[7]  # Measure error
-            if control == 0:
-                # P control
-                w = self.kp * error  # Implement control
-            elif control == 1:
-                # PD control
-                error_dev = (error - self.last_error) / self._dt  # Calculate derivative
-                self.last_error = error  # Update last error
-                w = self.kp * error + self.kd * error_dev  # Implement control
+            error_dev = (error - self.last_error) / self._dt  # Calculate derivative
+            self.last_error = error  # Update last error
+            w = self.kp * error + self.kd * error_dev  # Implement control
         elif lft_wall:
             # Following left wall
             error = self.wall_ref - z_us[0]  # Measure error
-            if control == 0:
-                # P control
-                w = -self.kp * error  # Implement control
-            elif control == 1:
-                # PD control
-                error_dev = (error - self.last_error) / self._dt
-                self.last_error = error
-                w = -(self.kp * error + self.kd * error_dev)
+            error_dev = (error - self.last_error) / self._dt
+            self.last_error = error
+            w = -(self.kp * error + self.kd * error_dev)
         else:
             # No walls
             w = self.w0  # Keep going with a small angular valocity to compensate
@@ -93,12 +83,9 @@ class WallFollower:
             v, w Tuple[float, float]: Command of the linear and angular velocities
         """
         # Define base linear velocity and angular velocity increments respect the base
-        if not on_point:
-            v = 0.0
-            inc_w = 1.4
-        else:
-            v = 0.0
-            inc_w = 1.4
+
+        v = 0.0
+        inc_w = 1.4
 
         # Check if it needs to turn more or not
         if self.rad_turn < (abs(deg) * pi / 180.0):

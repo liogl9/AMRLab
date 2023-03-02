@@ -35,7 +35,12 @@ class AStar:
                 (0, -1),  # Move one cell down
             ]
         )
-        self._action_costs: Tuple[float, float, float, float] = action_costs
+        self._action_costs: Dict[Tuple[int, int], Tuple[float, float, float, float]] = {
+            (-1, 0): (1, 4, 9, 4),
+            (0, 1): (4, 1, 4, 9),
+            (1, 0): (9, 4, 1, 4),
+            (0, -1): (4, 9, 4, 1),
+        }
         self._map: Map = Map(map_path, sensor_range, compiled_intersect=False, use_regions=False)
 
         self._figure, self._axes = plt.subplots(1, 1, figsize=(7, 7))
@@ -93,16 +98,24 @@ class AStar:
                 return self._reconstruct_path(start, goal, ancestors), steps
 
             neighbours = [(r, c - 1), (r - 1, c), (r, c + 1), (r + 1, c)]
-            neighbours = [
+            neighbours_filt = [
                 (x, y) for (x, y) in neighbours if x >= 0 and y >= 0 and x < size[0] and y < size[1]
             ]
-            for i, neighbor in enumerate(neighbours):
+            for neighbor in neighbours_filt:
                 if (
                     not self._map.grid_map[neighbor[0], neighbor[1]]
                     and neighbor not in open_list
                     and neighbor not in closed_list
                 ):
-                    g_new = g + self._action_costs[i]
+                    if node != (r_start, c_start):
+                        g_new = (
+                            g
+                            + self._action_costs[
+                                (node[0] - ancestors[node][0], node[1] - ancestors[node][1])
+                            ][neighbours.index(neighbor)]
+                        )
+                    else:
+                        g_new = g + 1
                     f_new = g_new + heuristic[neighbor]
                     open_list[neighbor] = (f_new, g_new)
                     ancestors[neighbor] = node

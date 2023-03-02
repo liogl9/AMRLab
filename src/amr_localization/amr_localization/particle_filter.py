@@ -1,6 +1,7 @@
 import datetime
 import math
 import numpy as np
+from numpy.typing import ArrayLike
 import os
 import pytz
 from scipy.stats import circmean
@@ -9,6 +10,8 @@ from amr_localization.map import Map
 from sklearn.cluster import DBSCAN
 from matplotlib import pyplot as plt
 from typing import List, Tuple
+from numba import jit
+import time
 
 
 class ParticleFilter:
@@ -72,7 +75,7 @@ class ParticleFilter:
         pose: Tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
 
         # TODO: 2.10. Complete the missing function body with your code.
-        clustering = DBSCAN(eps=0.33, min_samples=20).fit(self._particles[:, :-1])
+        clustering = DBSCAN(eps=0.5, min_samples=40).fit(self._particles[:, :-1])
         labels = clustering.labels_
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
         centroid = np.empty((1, 3))
@@ -114,10 +117,6 @@ class ParticleFilter:
         if n_clusters == 1:
             self.localized = True
             centroid[0, 0:2] = np.mean(self._particles[:, :-1], axis=0)
-            # centroid[0, 2] = np.mean(
-            #     [x if x <= math.pi else x - math.pi * 2 for x in self._particles[:, 2]]
-            # )
-            # centroid[0, 2] = np.mean(self._particles[:, 2])
             aux = np.array(
                 np.reshape(self._particles[:, 2], (self._particles.shape[0], 1)), dtype=np.float64
             )
@@ -129,9 +128,9 @@ class ParticleFilter:
             self._particle_count = 100
 
         elif n_clusters > 1 and n_clusters <= 4:
-            self._particle_count = 600 * n_clusters
-            if self._particle_count < 400:
-                self._particle_count = 400
+            self._particle_count = 800 * n_clusters
+            if self._particle_count < 700:
+                self._particle_count = 700
 
         return self.localized, pose
 
@@ -146,33 +145,39 @@ class ParticleFilter:
         self._iteration += 1
 
         # TODO: 2.5. Complete the function body with your code (i.e., replace the pass statement).
+        v_noise = np.random.normal(v, self._sigma_v, self._particles.shape[0])
+        w_noise = np.random.normal(w, self._sigma_w, self._particles.shape[0])
+        particles = np.asarray(self._particles)
+        particles[:, 0] = (
+            self._particles[:, 0]
+            + v_noise * np.cos(self._particles[:, 2].astype("float64")) * self._dt
+        )
+        particles[:, 1] = (
+            self._particles[:, 1]
+            + v_noise * np.sin(self._particles[:, 2].astype("float64")) * self._dt
+        )
+        self._particles[:, 2] = self._particles[:, 2] + w_noise * self._dt
+        # particles[:,0] =
         for i in range(self._particle_count):
-            v_noise = np.random.normal(v, self._sigma_v)
-            w_noise = np.random.normal(w, self._sigma_w)
-            particle = np.empty(2)
-
-            particle[0] = (
-                self._particles[i, 0] + v_noise * math.cos(self._particles[i, 2]) * self._dt
-            )
-            particle[1] = (
-                self._particles[i, 1] + v_noise * math.sin(self._particles[i, 2]) * self._dt
-            )
-            self._particles[i, 2] = self._particles[i, 2] + w_noise * self._dt
-
-            if self._particles[i, 2] > 2 * math.pi or self._particles[i, 2] < 0:
-                self._particles[i, 2] %= 2 * math.pi
-            # elif self._particles[i, 2] < 0:
-            #     self._particles[i, 2] = self._particles[i, 2] + 2 * math.pi
+            # particles[i, 0] = (
+            #     self._particles[i, 0] + v_noise[i] * np.cos(self._particles[i, 2]) * self._dt
+            # )
+            # particles[i, 1] = (
+            #     self._particles[i, 1] + v_noise[i] * np.sin(self._particles[i, 2]) * self._dt
+            # )
+            # self._particles[i, 2] = self._particles[i, 2] + w_noise[i] * self._dt
+            if self._particles[i, 2] > 2 * np.pi or self._particles[i, 2] < 0:
+                self._particles[i, 2] %= 2 * np.pi
 
             intersection, _ = self._map.check_collision(
-                [(self._particles[i, 0], self._particles[i, 1]), (particle[0], particle[1])]
+                [(self._particles[i, 0], self._particles[i, 1]), (particles[i, 0], particles[i, 1])]
             )
             if intersection:
                 self._particles[i, 0] = intersection[0]
                 self._particles[i, 1] = intersection[1]
             else:
-                self._particles[i, 0] = particle[0]
-                self._particles[i, 1] = particle[1]
+                self._particles[i, 0] = particles[i, 0]
+                self._particles[i, 1] = particles[i, 1]
 
     def resample(self, measurements: List[float]) -> None:
         """Samples a new set of particles.
@@ -185,13 +190,15 @@ class ParticleFilter:
         weights = [
             self._measurement_probability(measurements, particle) for particle in self._particles
         ]
-        # for particle in self._particles:
-        #     weights.append(self._measurement_probability(measurements, particle))
         weights_norm = weights / np.array(weights).sum(0)
-        new_particle_idxs = np.random.choice(
-            self._particles.shape[0], self._particle_count, replace=True, p=weights_norm
-        )
-        self._particles = self._particles[new_particle_idxs]
+        # new_particle_idxs = np.random.choice(
+        #     self._particles.shape[0], self._particle_count, replace=True, p=weights_norm
+        # )
+        self._particles = self._particles[
+            np.random.choice(
+                self._particles.shape[0], self._particle_count, replace=True, p=weights_norm
+            )
+        ]
 
     def plot(self, axes, orientation: bool = True):
         """Draws particles.
@@ -339,7 +346,8 @@ class ParticleFilter:
         return z_hat
 
     @staticmethod
-    def _gaussian(mu: float, sigma: float, x: float) -> float:
+    # @jit
+    def _gaussian(mu: ArrayLike, sigma: float, x: ArrayLike) -> ArrayLike:
         """Computes the value of a Gaussian.
 
         Args:
@@ -352,7 +360,7 @@ class ParticleFilter:
 
         """
         # TODO: 2.7. Complete the function body (i.e., replace the code below).
-        return 1.0 / (math.exp(((x - mu) ** 2) / (2 * (sigma**2))))
+        return 1.0 * np.exp(-((x - mu) ** 2) / (2 * (sigma**2)))
 
     def _measurement_probability(
         self, measurements: List[float], particle: Tuple[float, float, float]
@@ -373,16 +381,18 @@ class ParticleFilter:
 
         """
         probability = 1.0
-
+        pred_measures = np.array(self._sense(particle))
+        measurements = np.array(measurements)
+        measurements[measurements >= self._sensor_range] = 1.12 * self._sensor_range
+        pred_measures[pred_measures >= self._sensor_range] = 1.12 * self._sensor_range
+        probability = probability * np.prod(
+            self._gaussian(mu=pred_measures, sigma=self._sigma_z, x=measurements), 0
+        )
         # TODO: 2.8. Complete the missing function body with your code.
-        for act_measure, pred_measure in zip(measurements, self._sense(particle)):
-            if act_measure >= self._sensor_range:
-                act_measure = 1.25 * self._sensor_range
-            if pred_measure >= self._sensor_range:
-                pred_measure = 1.25 * self._sensor_range
-            probability = probability * self._gaussian(
-                mu=pred_measure, sigma=self._sigma_z, x=act_measure
-            )
+        # for act_measure, pred_measure in zip(measurements, pred_measures):
+        #     probability = probability * self._gaussian(
+        #         mu=pred_measure, sigma=self._sigma_z, x=act_measure
+        #     )
         return probability
 
     def _sensor_rays(self, particle: Tuple[float, float, float]) -> List[List[Tuple[float, float]]]:
