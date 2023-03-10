@@ -127,7 +127,7 @@ class AStar:
 
     @staticmethod
     def smooth_path(
-        path, data_weight: float = 0.1, smooth_weight: float = 0.3, tolerance: float = 1e-9
+        path, data_weight: float = 0.1, smooth_weight: float = 0.4, tolerance: float = 1e-9
     ) -> List[Tuple[float, float]]:
         """Computes a smooth trajectory from a Manhattan-like path.
 

@@ -10,8 +10,6 @@ from amr_localization.map import Map
 from sklearn.cluster import DBSCAN
 from matplotlib import pyplot as plt
 from typing import List, Tuple
-from numba import jit
-import time
 
 
 class ParticleFilter:
@@ -75,7 +73,7 @@ class ParticleFilter:
         pose: Tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
 
         # TODO: 2.10. Complete the missing function body with your code.
-        clustering = DBSCAN(eps=0.5, min_samples=40).fit(self._particles[:, :-1])
+        clustering = DBSCAN(eps=0.5, min_samples=45).fit(self._particles[:, :-1])
         labels = clustering.labels_
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
         centroid = np.empty((1, 3))
@@ -128,7 +126,7 @@ class ParticleFilter:
             self._particle_count = 100
 
         elif n_clusters > 1 and n_clusters <= 4:
-            self._particle_count = 800 * n_clusters
+            self._particle_count = 650 * n_clusters
             if self._particle_count < 700:
                 self._particle_count = 700
 
@@ -156,9 +154,12 @@ class ParticleFilter:
             self._particles[:, 1]
             + v_noise * np.sin(self._particles[:, 2].astype("float64")) * self._dt
         )
+
+        # self._particles[:, 2] = self._particles[:, 2] + w_noise * self._dt
         self._particles[:, 2] = self._particles[:, 2] + w_noise * self._dt
-        # particles[:,0] =
-        for i in range(self._particle_count):
+        # self._particles[:, 2] = self._particles[:, 2] % (2 * np.pi)
+
+        for i, particle in enumerate(self._particles):
             # particles[i, 0] = (
             #     self._particles[i, 0] + v_noise[i] * np.cos(self._particles[i, 2]) * self._dt
             # )
@@ -166,11 +167,11 @@ class ParticleFilter:
             #     self._particles[i, 1] + v_noise[i] * np.sin(self._particles[i, 2]) * self._dt
             # )
             # self._particles[i, 2] = self._particles[i, 2] + w_noise[i] * self._dt
-            if self._particles[i, 2] > 2 * np.pi or self._particles[i, 2] < 0:
+            if particle[2] > 2 * np.pi or particle[2] < 0:
                 self._particles[i, 2] %= 2 * np.pi
 
             intersection, _ = self._map.check_collision(
-                [(self._particles[i, 0], self._particles[i, 1]), (particles[i, 0], particles[i, 1])]
+                [(particle[0], particle[1]), (particles[i, 0], particles[i, 1])]
             )
             if intersection:
                 self._particles[i, 0] = intersection[0]
@@ -291,6 +292,7 @@ class ParticleFilter:
 
         # TODO: 2.4. Complete the missing function body with your code.
         x_min, y_min, x_max, y_max = self._map.bounds()
+
         for i in range(particle_count):
             x = np.random.uniform(x_min, x_max)
             y = np.random.uniform(y_min, y_max)
@@ -338,15 +340,11 @@ class ParticleFilter:
         for ray in rays:
             _, distance = self._map.check_collision(ray, compute_distance=True)
             z_hat.append(distance)
-            # if distance <= self._sensor_range:
-            #     z_hat.append(distance)
-            # else:
-            #     z_hat.append(float("inf"))
 
         return z_hat
 
     @staticmethod
-    # @jit
+    # @jit(cache=True)
     def _gaussian(mu: ArrayLike, sigma: float, x: ArrayLike) -> ArrayLike:
         """Computes the value of a Gaussian.
 

@@ -11,6 +11,8 @@ def generate_launch_description():
     # start = (2.0, -3.0, 1.5 * math.pi)
     # goal = (3.0, 2.0)
     # start = (2.0, -3.0, 0.5 * math.pi)
+    # start = (2.0, -1.0, 1.0 * math.pi)
+    # start = (2.0, 0.0, 0.0 * math.pi)
     goal = (0.0, 4.0)
     particles = 7000
     sense_steps = 15
@@ -31,7 +33,12 @@ def generate_launch_description():
                 output="screen",
                 arguments=["--ros-args", "--log-level", "WARN"],
                 parameters=[
-                    {"particles": particles, "world": world, "steps_btw_sense_updates": sense_steps}
+                    {
+                        "particles": particles,
+                        "world": world,
+                        "steps_btw_sense_updates": sense_steps,
+                        "enable_plot": True,
+                    }
                 ],
             ),
             Node(

@@ -36,17 +36,27 @@ class PurePursuit:
         origin, origin_idx = self._find_closest_point(x, y)
         target = self._find_target_point(origin, origin_idx)
         self.alfa = theta - np.arctan2(target[1] - y, target[0] - x)
-        abs_alfa = np.abs(self.alfa)
-        if abs_alfa < 0.3 or abs_alfa > 6.0:
+        if self.alfa > 2 * np.pi or self.alfa < 0:
+            self.alfa %= 2 * np.pi
+
+        if origin_idx < 5 and self.alfa > 0.45 * np.pi and self.alfa < np.pi:
+            v = 0.01
+            w = -2.5
+        elif origin_idx < 5 and self.alfa < 1.55 * np.pi and self.alfa > np.pi:
+            v = 0.01
+            w = 2.5
+        elif self.alfa < 0.3 or self.alfa > 6.0:
             v = 1.2
-            w_mult = 0.8
-        elif abs_alfa < 4.5:
-            v = 0.7
-            w_mult = 1.35
+            w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -0.7
         else:
-            v = 0.5
-            w_mult = 2
-        w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -w_mult
+            v = 0.7
+            # aux = 0.5 * np.sin(self.alfa)
+            # v = 1.2 - aux
+            w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -1.2
+            # w = 2 * (1.2 + aux) * np.sin(self.alfa) / self._lookahead_distance * -1.2
+        # else:
+        #     v = 0.02
+        #     w = 2 * v * np.sin(self.alfa) / self._lookahead_distance * -100
 
         return v, w
 
@@ -76,7 +86,8 @@ class PurePursuit:
         closest_xy = (0.0, 0.0)
         closest_idx = 0
         distances = np.array(
-            [np.sqrt((node[0] - x) ** 2 + (node[1] - y) ** 2) for node in self.path]
+            [np.linalg.norm(np.array([node[0], node[1]]) - np.array([x, y])) for node in self.path]
+            # [np.sqrt((node[0] - x) ** 2 + (node[1] - y) ** 2) for node in self.path]
         )
         closest_idx = np.where(distances == distances.min())[0][0]
         closest_xy = self.path[closest_idx]
